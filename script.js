@@ -103,12 +103,22 @@ document.addEventListener("DOMContentLoaded", () => {
     livrablesList.innerHTML = "";
     (llmData.livrables || []).forEach(l => {
       const li = document.createElement("li");
+
+      // Checkbox
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.dataset.titre = l.titre;
       cb.dataset.type = l.type;
       li.appendChild(cb);
       li.appendChild(document.createTextNode(` ${l.titre} (${l.type})`));
+
+      // Notes
+      const note = document.createElement("textarea");
+      note.className = "livrable-note";
+      note.placeholder = "Ajouter une note ou commentaire...";
+      note.dataset.titre = l.titre;
+      li.appendChild(note);
+
       livrablesList.appendChild(li);
     });
   }
@@ -144,16 +154,19 @@ document.addEventListener("DOMContentLoaded", () => {
     window.open("https://chat.openai.com/", "_blank");
   });
 
-  // Générer livrable via LLM
+  // Générer livrable via LLM (avec notes)
   generateLivrableBtn.addEventListener("click", () => {
     if (!llmData?.livrables) return;
-    const selected = Array.from(livrablesList.querySelectorAll("input[type=checkbox]:checked"));
+    const selected = Array.from(livrablesList.querySelectorAll("li")).filter(li => li.querySelector("input[type=checkbox]").checked);
     if (!selected.length) { alert("Coche au moins un livrable !"); return; }
     const promptTexte = livrablePrompts[livrablePromptSelect.value];
-    const content = selected.map(cb => `${cb.dataset.titre} (${cb.dataset.type})`).join("\n");
+    const content = selected.map(li => {
+      const cb = li.querySelector("input[type=checkbox]");
+      const note = li.querySelector("textarea").value.trim();
+      return note ? `${cb.dataset.titre} (${cb.dataset.type})\nNote: ${note}` : `${cb.dataset.titre} (${cb.dataset.type})`;
+    }).join("\n\n");
     navigator.clipboard.writeText(`${promptTexte}\n\n${content}`)
       .then(() => alert("Prompt + livrables copiés dans le presse-papiers !"));
     window.open("https://chat.openai.com/", "_blank");
   });
-
 });
